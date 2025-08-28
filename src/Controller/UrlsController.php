@@ -29,6 +29,8 @@ class UrlsController extends AbstractController
             $existing = $urlsRepository->findOneBy(['original' => $url->getOriginal()]);
 
             if ($existing) {
+                            $logger->info('URL déjà existante', ['shortened' => $existing->getShortened()]);
+
                 return $this->redirectToRoute('app_preview', [
                     'shortened' => $existing->getShortened()
                 ]);
