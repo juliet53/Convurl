@@ -38,6 +38,7 @@ class UrlsController extends AbstractController
 
             $entityManager->persist($url);
             $entityManager->flush();
+            dd('super');
 
             return $this->redirectToRoute('app_preview', ['shortened' => $shortened], 303);
         }
