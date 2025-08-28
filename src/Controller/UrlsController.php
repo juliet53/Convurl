@@ -6,6 +6,7 @@ use App\Repository\UrlRepository;
 use App\Entity\Url;
 use App\Form\UrlType;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,7 +15,7 @@ use Symfony\Component\Routing\Annotation\Route;
 class UrlsController extends AbstractController
 {
    #[Route('/', name: 'app_urls')]
-    public function index(Request $request, UrlRepository $urlsRepository, EntityManagerInterface $entityManager): Response
+    public function index(Request $request, UrlRepository $urlsRepository, EntityManagerInterface $entityManager,LoggerInterface $logger): Response
     {
         // nouvelle url ->
         $url = new Url();
@@ -23,12 +24,11 @@ class UrlsController extends AbstractController
 
 
         if ($form->isSubmitted() && $form->isValid()) {
-           dd('test');
+              $logger->info('Form submitted', ['url' => $url->getOriginal()]);
             // Vérifier si l'URL existe déjà
             $existing = $urlsRepository->findOneBy(['original' => $url->getOriginal()]);
 
             if ($existing) {
-                dd('exist');
                 return $this->redirectToRoute('app_preview', [
                     'shortened' => $existing->getShortened()
                 ]);
