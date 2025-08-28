@@ -15,67 +15,92 @@ use Symfony\Component\Routing\Annotation\Route;
 class UrlsController extends AbstractController
 {
    #[Route('/', name: 'app_urls')]
-    public function index(Request $request, UrlRepository $urlsRepository, EntityManagerInterface $entityManager,LoggerInterface $logger): Response
+    public function index(Request $request, UrlRepository $urlsRepository, EntityManagerInterface $entityManager, LoggerInterface $logger): Response
     {
-        // nouvelle url ->
-        $url = new Url();
-        $form = $this->createForm(UrlType::class, $url);
-        $form->handleRequest($request);
+        try {
+            $url = new Url();
+            $form = $this->createForm(UrlType::class, $url);
+            $form->handleRequest($request);
 
+            if ($form->isSubmitted() && $form->isValid()) {
+                $logger->info('Form submitted', ['url' => $url->getOriginal()]);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-              $logger->info('Form submitted', ['url' => $url->getOriginal()]);
-            // Vérifier si l'URL existe déjà
-            $existing = $urlsRepository->findOneBy(['original' => $url->getOriginal()]);
+                $existing = $urlsRepository->findOneBy(['original' => $url->getOriginal()]);
 
-            if ($existing) {
-                            $logger->info('URL déjà existante', ['shortened' => $existing->getShortened()]);
+                if ($existing) {
+                    $logger->info('URL déjà existante', ['shortened' => $existing->getShortened()]);
+                    return $this->redirectToRoute('app_preview', [
+                        'shortened' => $existing->getShortened()
+                    ]);
+                }
 
-                return $this->redirectToRoute('app_preview', [
-                    'shortened' => $existing->getShortened()
-                ]);
+                $shortened = substr(md5(uniqid()), 0, 6);
+                $url->setShortened($shortened);
+
+                $entityManager->persist($url);
+                $entityManager->flush();
+
+                return $this->redirectToRoute('app_preview', ['shortened' => $shortened], 303);
             }
 
-            // Génération d'un code court unique
-            $shortened = substr(md5(uniqid()), 0, 6);
-            $url->setShortened($shortened);
-
-            $entityManager->persist($url);
-            $entityManager->flush();
-            
-
-            return $this->redirectToRoute('app_preview', ['shortened' => $shortened], 303);
+            return $this->render('urls/index.html.twig', [
+                'form' => $form->createView(),
+            ]);
+        } catch (\Throwable $e) {
+            // Affiche TOUTES les erreurs avec trace complète
+            return new Response(
+                '<h1>Erreur détectée</h1>' .
+                '<p><strong>Message :</strong> ' . $e->getMessage() . '</p>' .
+                '<p><strong>Fichier :</strong> ' . $e->getFile() . ' (ligne ' . $e->getLine() . ')</p>' .
+                '<pre>' . $e->getTraceAsString() . '</pre>',
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         }
-
-        return $this->render('urls/index.html.twig', [
-            'form' => $form->createView(),
-        ]);
     }
 
     #[Route('/preview/{shortened}', name: 'app_preview')]
     public function preview(UrlRepository $urlsRepository, string $shortened): Response
     {
-        $url = $urlsRepository->findOneBy(['shortened' => $shortened]);
+        try {
+            $url = $urlsRepository->findOneBy(['shortened' => $shortened]);
 
-        if (!$url) {
-            throw $this->createNotFoundException('URL non trouvée');
+            if (!$url) {
+                throw $this->createNotFoundException('URL non trouvée');
+            }
+
+            return $this->render('urls/preview.html.twig', [
+                'url' => $url,
+            ]);
+        } catch (\Throwable $e) {
+            return new Response(
+                '<h1>Erreur détectée</h1>' .
+                '<p><strong>Message :</strong> ' . $e->getMessage() . '</p>' .
+                '<p><strong>Fichier :</strong> ' . $e->getFile() . ' (ligne ' . $e->getLine() . ')</p>' .
+                '<pre>' . $e->getTraceAsString() . '</pre>',
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         }
-
-        return $this->render('urls/preview.html.twig', [
-            'url' => $url,
-        ]);
     }
 
     #[Route('/{shortened}', name: 'app_show')]
     public function show(UrlRepository $urlsRepository, string $shortened): Response
     {
-        $url = $urlsRepository->findOneBy(['shortened' => $shortened]);
+        try {
+            $url = $urlsRepository->findOneBy(['shortened' => $shortened]);
 
-        if (!$url) {
-            throw $this->createNotFoundException('URL non trouvée');
+            if (!$url) {
+                throw $this->createNotFoundException('URL non trouvée');
+            }
+
+            return $this->redirect($url->getOriginal());
+        } catch (\Throwable $e) {
+            return new Response(
+                '<h1>Erreur détectée</h1>' .
+                '<p><strong>Message :</strong> ' . $e->getMessage() . '</p>' .
+                '<p><strong>Fichier :</strong> ' . $e->getFile() . ' (ligne ' . $e->getLine() . ')</p>' .
+                '<pre>' . $e->getTraceAsString() . '</pre>',
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         }
-
-        // Redirection vers l'URL originale
-        return $this->redirect($url->getOriginal());
     }
 }
