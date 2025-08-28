@@ -1,0 +1,39 @@
+name: Déploiement sur Heroku
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yaml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cloner le dépôt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Installer Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Vérifier Heroku CLI
+        run: heroku --version
+
+      - name: Ajouter la télécommande Git Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          heroku git:remote -a cinephoriaappj
+          git remote set-url heroku https://heroku:${HEROKU_API_KEY}@git.heroku.com/cinephoriaappj.git
+
+      - name: Vérifier les télécommandes Git
+        run: git remote -v
+
+      - name: Déployer sur Heroku
+        run: git push heroku master --force
