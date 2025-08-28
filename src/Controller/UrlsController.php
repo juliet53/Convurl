@@ -23,12 +23,12 @@ class UrlsController extends AbstractController
 
 
         if ($form->isSubmitted() && $form->isValid()) {
-           dump($url);
+           echo('test');
             // Vérifier si l'URL existe déjà
             $existing = $urlsRepository->findOneBy(['original' => $url->getOriginal()]);
 
             if ($existing) {
-                
+                echo('exist');
                 return $this->redirectToRoute('app_preview', [
                     'shortened' => $existing->getShortened()
                 ]);
