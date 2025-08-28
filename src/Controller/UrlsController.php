@@ -39,9 +39,7 @@ class UrlsController extends AbstractController
             $entityManager->persist($url);
             $entityManager->flush();
 
-            return $this->redirectToRoute('app_preview', [
-                'shortened' => $shortened
-            ]);
+            return $this->redirectToRoute('app_preview', ['shortened' => $shortened], 303);
         }
 
         return $this->render('urls/index.html.twig', [
