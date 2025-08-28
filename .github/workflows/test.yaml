@@ -52,11 +52,6 @@ jobs:
           APP_ENV: test
           DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
 
-      - name: Run Symfony auto-scripts
-        run: composer run-script symfony-auto-scripts
-        env:
-          APP_ENV: test
-          DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
 
       - name: Wait for MySQL
         run: sleep 15
