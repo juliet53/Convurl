@@ -4,11 +4,10 @@ on: [push, pull_request]
 
 jobs:
   test:
-    name: Run PHPUnit Tests
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup PHP
@@ -16,25 +15,35 @@ jobs:
         with:
           php-version: 8.2
           tools: composer:v2
-          extensions: pdo_sqlite, intl, mbstring
+          extensions: sqlite, pdo_sqlite
+
+      - name: Setup Composer Cache
+        run: echo "COMPOSER_CACHE_DIR=$(composer config cache-dir)" >> $GITHUB_ENV
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.COMPOSER_CACHE_DIR }}
+          key: php8.2-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            php8.2-composer-
+
+      - name: Set environment variables for test
+        run: |
+          echo "APP_ENV=test" >> $GITHUB_ENV
+          echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/test.db" >> $GITHUB_ENV
+          echo "APP_SECRET=testsecret" >> $GITHUB_ENV
 
       - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
+        run: composer install --no-scripts --prefer-dist --no-interaction --no-progress
 
-      - name: Ensure var directory exists
-        run: mkdir -p var && chmod -R 777 var
+      - name: Clear cache for test env
+        run: php bin/console cache:clear --env=test
 
-      - name: Prepare Test Database
-        run: |
-          php bin/console doctrine:database:create --env=test
-          php bin/console doctrine:schema:update --force --env=test
-
-      - name: Install importmap assets (if needed)
+      - name: Install importmap assets
         run: php bin/console importmap:install
 
       - name: Run PHPUnit
-        run: php bin/phpunit --testdox
+        run: php bin/phpunit
         env:
           APP_ENV: test
-          APP_SECRET: '$ecretf0rt3st'
-          DATABASE_URL: "sqlite:///%kernel.project_dir%/var/test.db"
