@@ -42,10 +42,6 @@ jobs:
           path: ${{ env.COMPOSER_CACHE_DIR }}
           key: php8.2-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: php8.2-composer-
-          enableCrossOsArchive: false
-          fail-on-cache-miss: false
-          lookup-only: false
-          save-always: false
         env:
           COMPOSER_PROCESS_TIMEOUT: 0
           COMPOSER_NO_INTERACTION: 1
@@ -57,11 +53,9 @@ jobs:
       - name: Wait for MySQL to be ready
         run: sleep 15
 
-      - name: Create test database
-        run: php bin/console doctrine:database:create --env=test
-        env:
-          APP_ENV: test
-          DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
+     
+      - name: Create test database manually
+        run: mysql -h 127.0.0.1 -u root -proot -e "CREATE DATABASE IF NOT EXISTS convurl_test;"
 
       - name: Run migrations
         run: php bin/console doctrine:migrations:migrate --no-interaction --env=test
