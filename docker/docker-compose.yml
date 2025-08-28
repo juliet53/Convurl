@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: symfony_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: symfony
+      MYSQL_USER: symfony
+      MYSQL_PASSWORD: symfony
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+  app:
+    image: 06061e124a8eb6c628c3021ccbe970eb9b1bb1af8fc305a15aa3d3f9e9ad4e35
+    ports:
+      - "8080:80" 
+
+volumes:
+  db_data:

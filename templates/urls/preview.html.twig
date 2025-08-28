@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<div class="container">
+    <div class="px-4 py-5 my-5 text-center">
+        <h1>Votre URL raccourcie</h1>
+
+        <p>URL originale : {{ url.original }}</p>
+
+        <p>Lien raccourci : 
+            <a href="{{ path('app_show', {'shortened': url.shortened}) }}">
+                {{ app.request.schemeAndHttpHost ~ '/' ~ url.shortened }}
+            </a>
+        </p>
+
+        <p>
+            <a href="{{ path('app_urls') }}">Retour au formulaire</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

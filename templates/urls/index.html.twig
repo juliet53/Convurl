@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<div class="container">
+    <div class="px-4 py-5 my-5 text-center">
+        <h1>Réducteur d'URL</h1>
+
+        {{ form_start(form) }}
+            <div class="mb-3">
+                {{ form_widget(form.original) }}
+                {{ form_errors(form.original) }}
+            </div>
+            <button type="submit" class="btn btn-primary">Raccourcir</button>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}
