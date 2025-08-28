@@ -1,14 +1,13 @@
-name: Tests Symfony
+name: Symfony Tests
 
 on: [push, pull_request]
 
 jobs:
   test:
-    name: Run Symfony Tests
     runs-on: ubuntu-latest
 
     services:
-      database:
+      mysql:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
@@ -18,7 +17,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -32,7 +31,10 @@ jobs:
         with:
           php-version: 8.2
           tools: composer:v2
-          extensions: pdo_mysql, intl
+          extensions: pdo_mysql, mbstring, intl, xml
+
+      - name: Setup Composer Cache
+        run: echo "COMPOSER_CACHE_DIR=$(composer config cache-dir)" >> $GITHUB_ENV
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
@@ -40,21 +42,35 @@ jobs:
           path: ${{ env.COMPOSER_CACHE_DIR }}
           key: php8.2-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: php8.2-composer-
+          enableCrossOsArchive: false
+          fail-on-cache-miss: false
+          lookup-only: false
+          save-always: false
+        env:
+          COMPOSER_PROCESS_TIMEOUT: 0
+          COMPOSER_NO_INTERACTION: 1
+          COMPOSER_NO_AUDIT: 1
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
 
-      - name: Wait for MySQL
+      - name: Wait for MySQL to be ready
         run: sleep 15
 
-      - name: Run Doctrine Migrations (test env)
+      - name: Create test database
+        run: php bin/console doctrine:database:create --env=test
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
+
+      - name: Run migrations
         run: php bin/console doctrine:migrations:migrate --no-interaction --env=test
         env:
           APP_ENV: test
           DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
 
       - name: Run PHPUnit tests
-        run: php bin/phpunit --colors=always
+        run: php bin/phpunit --testdox
         env:
           APP_ENV: test
           DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
