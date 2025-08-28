@@ -89,8 +89,8 @@ jobs:
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
-          heroku git:remote -a ton-app-heroku
-          git remote set-url heroku https://heroku:${HEROKU_API_KEY}@git.heroku.com/ton-app-heroku.git
+          heroku git:remote -a convurl
+          git remote set-url heroku https://heroku:${HEROKU_API_KEY}@git.heroku.com/convurl.git
 
       - name: Deploy to Heroku
         env:
