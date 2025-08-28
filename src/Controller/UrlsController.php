@@ -27,6 +27,7 @@ class UrlsController extends AbstractController
             $existing = $urlsRepository->findOneBy(['original' => $url->getOriginal()]);
 
             if ($existing) {
+                dd('super');
                 return $this->redirectToRoute('app_preview', [
                     'shortened' => $existing->getShortened()
                 ]);
@@ -38,7 +39,7 @@ class UrlsController extends AbstractController
 
             $entityManager->persist($url);
             $entityManager->flush();
-            dd('super');
+            
 
             return $this->redirectToRoute('app_preview', ['shortened' => $shortened], 303);
         }
