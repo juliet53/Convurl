@@ -47,14 +47,14 @@ class UrlsController extends AbstractController
                 'form' => $form->createView(),
             ]);
         } catch (\Throwable $e) {
-            // Affiche TOUTES les erreurs avec trace complète
-            return new Response(
-                '<h1>Erreur détectée</h1>' .
-                '<p><strong>Message :</strong> ' . $e->getMessage() . '</p>' .
-                '<p><strong>Fichier :</strong> ' . $e->getFile() . ' (ligne ' . $e->getLine() . ')</p>' .
-                '<pre>' . $e->getTraceAsString() . '</pre>',
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
+            // Affiche directement dans la console Docker
+            error_log("=== EXCEPTION ===");
+            error_log("Message: " . $e->getMessage());
+            error_log("Fichier: " . $e->getFile() . " (ligne " . $e->getLine() . ")");
+            error_log("Trace: " . $e->getTraceAsString());
+
+            // Optionnel : retourne une réponse minimaliste
+            return new Response('Une erreur est survenue (voir logs console).', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -72,13 +72,12 @@ class UrlsController extends AbstractController
                 'url' => $url,
             ]);
         } catch (\Throwable $e) {
-            return new Response(
-                '<h1>Erreur détectée</h1>' .
-                '<p><strong>Message :</strong> ' . $e->getMessage() . '</p>' .
-                '<p><strong>Fichier :</strong> ' . $e->getFile() . ' (ligne ' . $e->getLine() . ')</p>' .
-                '<pre>' . $e->getTraceAsString() . '</pre>',
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
+            error_log("=== EXCEPTION ===");
+            error_log("Message: " . $e->getMessage());
+            error_log("Fichier: " . $e->getFile() . " (ligne " . $e->getLine() . ")");
+            error_log("Trace: " . $e->getTraceAsString());
+
+            return new Response('Une erreur est survenue (voir logs console).', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -94,13 +93,12 @@ class UrlsController extends AbstractController
 
             return $this->redirect($url->getOriginal());
         } catch (\Throwable $e) {
-            return new Response(
-                '<h1>Erreur détectée</h1>' .
-                '<p><strong>Message :</strong> ' . $e->getMessage() . '</p>' .
-                '<p><strong>Fichier :</strong> ' . $e->getFile() . ' (ligne ' . $e->getLine() . ')</p>' .
-                '<pre>' . $e->getTraceAsString() . '</pre>',
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
+            error_log("=== EXCEPTION ===");
+            error_log("Message: " . $e->getMessage());
+            error_log("Fichier: " . $e->getFile() . " (ligne " . $e->getLine() . ")");
+            error_log("Trace: " . $e->getTraceAsString());
+
+            return new Response('Une erreur est survenue (voir logs console).', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }
