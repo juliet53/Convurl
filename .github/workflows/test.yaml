@@ -1,32 +1,60 @@
-name: Tests
+name: Tests Symfony
 
 on: [push, pull_request]
 
 jobs:
   test:
+    name: Run Symfony Tests
     runs-on: ubuntu-latest
 
+    services:
+      database:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: convurl_test
+          MYSQL_USER: symfony
+          MYSQL_PASSWORD: symfony
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: 8.2
           tools: composer:v2
-          extensions: sqlite
+          extensions: pdo_mysql, intl
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.COMPOSER_CACHE_DIR }}
+          key: php8.2-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: php8.2-composer-
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
 
-      - name: Run migrations
+      - name: Wait for MySQL
+        run: sleep 15
+
+      - name: Run Doctrine Migrations (test env)
         run: php bin/console doctrine:migrations:migrate --no-interaction --env=test
         env:
-          DATABASE_URL: sqlite:///%kernel.project_dir%/var/test.db
           APP_ENV: test
+          DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
 
-      - name: Run PHPUnit
-        run: php bin/phpunit --env=test
+      - name: Run PHPUnit tests
+        run: php bin/phpunit --colors=always
         env:
-          DATABASE_URL: sqlite:///%kernel.project_dir%/var/test.db
           APP_ENV: test
+          DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
