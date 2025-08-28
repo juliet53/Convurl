@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   test:
-    name: Run Symfony Tests
+    name: Run PHPUnit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -16,33 +16,25 @@ jobs:
         with:
           php-version: 8.2
           tools: composer:v2
-          extensions: pdo_sqlite, intl
-
-      - name: Set environment variables for test
-        run: |
-          echo "APP_ENV=test" >> $GITHUB_ENV
-          echo "KERNEL_CLASS=App\Kernel" >> $GITHUB_ENV
-          echo "APP_SECRET=\$ecretf0rt3st" >> $GITHUB_ENV
-          echo "DATABASE_URL=sqlite:///%kernel.project_dir%/var/test.db" >> $GITHUB_ENV
-
-      - name: Setup Composer Cache
-        run: echo "COMPOSER_CACHE_DIR=$(composer config cache-dir)" >> $GITHUB_ENV
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.COMPOSER_CACHE_DIR }}
-          key: php8.2-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            php8.2-composer-
+          extensions: pdo_sqlite, intl, mbstring
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Clear cache for test env
-        run: php bin/console cache:clear --env=test
+      - name: Ensure var directory exists
+        run: mkdir -p var && chmod -R 777 var
+
+      - name: Prepare Test Database
+        run: |
+          php bin/console doctrine:database:create --env=test
+          php bin/console doctrine:schema:update --force --env=test
+
+      - name: Install importmap assets (if needed)
+        run: php bin/console importmap:install
 
       - name: Run PHPUnit
-        run: php bin/phpunit
+        run: php bin/phpunit --testdox
         env:
           APP_ENV: test
+          APP_SECRET: '$ecretf0rt3st'
+          DATABASE_URL: "sqlite:///%kernel.project_dir%/var/test.db"
