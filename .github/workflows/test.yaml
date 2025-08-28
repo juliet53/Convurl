@@ -7,22 +7,6 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
 
-    services:
-      database:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: symfony_test
-          MYSQL_USER: symfony
-          MYSQL_PASSWORD: symfony
-        ports:
-          - 3306/tcp
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,7 +16,7 @@ jobs:
         with:
           php-version: 8.2
           tools: composer:v2
-          extensions: mbstring, intl, pdo_mysql
+          extensions: mbstring, intl, pdo_sqlite
 
       - name: Setup Composer Cache
         run: echo "COMPOSER_CACHE_DIR=$(composer config cache-dir)" >> $GITHUB_ENV
@@ -45,26 +29,23 @@ jobs:
           restore-keys: |
             php8.2-composer-
 
-      - name: Install Composer dependencies (without scripts)
-        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
-
-      - name: Run Symfony auto-scripts
-        env:
-          APP_ENV: test
-          DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/symfony_test
-        run: composer run-script symfony-auto-scripts
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Install importmap assets
         env:
           APP_ENV: test
-          DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/symfony_test
+          DATABASE_URL: sqlite:///%kernel.project_dir%/var/test.db
         run: php bin/console importmap:install
 
-      - name: Wait for DB
-        run: sleep 10
+      - name: Run Doctrine Migrations
+        env:
+          APP_ENV: test
+          DATABASE_URL: sqlite:///%kernel.project_dir%/var/test.db
+        run: php bin/console doctrine:migrations:migrate --no-interaction
 
       - name: Run PHPUnit
         env:
           APP_ENV: test
-          DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/symfony_test
+          DATABASE_URL: sqlite:///%kernel.project_dir%/var/test.db
         run: php bin/phpunit --testsuite=default
