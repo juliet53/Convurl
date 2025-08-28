@@ -1,14 +1,16 @@
-name: Tests
+name: Tests Symfony
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
 
 jobs:
   test:
-    name: Run Symfony Tests
+    name: Tests
     runs-on: ubuntu-latest
 
     services:
-      mysql:
+      database:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
@@ -16,15 +18,15 @@ jobs:
           MYSQL_USER: symfony
           MYSQL_PASSWORD: symfony
         ports:
-          - 3306:3306
+          - 3306/tcp
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -proot"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup PHP
@@ -32,7 +34,7 @@ jobs:
         with:
           php-version: 8.2
           tools: composer:v2
-          extensions: mysqli, pdo_mysql
+          extensions: mbstring, intl, pdo_mysql
 
       - name: Setup Composer Cache
         run: echo "COMPOSER_CACHE_DIR=$(composer config cache-dir)" >> $GITHUB_ENV
@@ -42,26 +44,32 @@ jobs:
         with:
           path: ${{ env.COMPOSER_CACHE_DIR }}
           key: php8.2-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            php8.2-composer-
+          restore-keys: php8.2-composer-
 
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
-
-      - name: Wait for MySQL
-        run: sleep 15
-
-      - name: Create test database
-        run: |
-          mysql -h 127.0.0.1 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS convurl_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-      - name: Run Doctrine migrations (test env)
-        run: php bin/console doctrine:migrations:migrate --no-interaction --env=test
+      - name: Install Composer dependencies (no scripts)
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
         env:
           APP_ENV: test
           DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
 
-      - name: Run PHPUnit
+      - name: Run Symfony auto-scripts
+        run: composer run-script symfony-auto-scripts
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
+
+      - name: Wait for MySQL
+        run: sleep 15
+
+      - name: Create database & run migrations
+        run: |
+          php bin/console doctrine:database:create --if-not-exists --env=test
+          php bin/console doctrine:migrations:migrate --no-interaction --env=test
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://symfony:symfony@127.0.0.1:3306/convurl_test
+
+      - name: Run PHPUnit tests
         run: php bin/phpunit
         env:
           APP_ENV: test
